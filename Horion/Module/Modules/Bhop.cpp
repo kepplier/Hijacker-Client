@@ -12,7 +12,7 @@ Bhop::Bhop() : IModule(0, Category::MOVEMENT, "Hop around like a bunny!") {
 	registerFloatSetting("Float Speed Hive 2", &speed2, speed2, 0.1f, 1.5f);
 	registerFloatSetting("Float Speed Hive 3", &speed3, speed3, 0.1f, 0.90f);
 	registerBoolSetting("Hive", &hive, hive);
-	registerBoolSetting("Vibie", &vibie, vibie);
+	registerBoolSetting("NRG Kow", &NRGKow, NRGKow);
 }
 
 Bhop::~Bhop() {
@@ -72,6 +72,36 @@ void Bhop::onMove(MoveInputHandler* input) {
 				moveVec.y = player->velocity.y;
 				moveVec.z = moveVec2d.y * speedFriction;
 				player->lerpMotion(moveVec);
+			}
+		}
+	}
+	if (NRGKow) {
+		player->stepHeight = 0.f;
+		static bool useVelocity = false;
+		if (0.4000000059604645 >= 0.385) {
+			if (player->onGround && pressed) player->jumpFromGround();
+			useVelocity = false;
+		} else
+			useVelocity = true;
+
+		NRGKowSpeed *= 0.8335499811172485;
+		if (pressed) {
+			player->setSprinting(true);
+			if (player->onGround) {
+				if (useVelocity && !input->isJumping) player->velocity.y = 0.4000000059604645;
+				NRGKowSpeed = RandomFloat(0.7190652072429657, 0.68381298780441284);
+			} else {
+				moveVec.x = moveVec2d.x * NRGKowSpeed;
+				moveVec.y = player->velocity.y;
+				moveVec.z = moveVec2d.y * NRGKowSpeed;
+				player->lerpMotion(moveVec);
+			}
+
+			if ((GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
+				Game.getClientInstance()->minecraft->setTimerSpeed(31.f);
+			}
+			if ((!GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
+				Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
 			}
 		}
 	}

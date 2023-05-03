@@ -17,6 +17,8 @@ private:
 	float speedFriction = 0.325f;
 	float DontTouchThisValue2 = 0.1f;
 	float cashedStepHeignt = 0.5f;
+	bool NRGKow = false;
+	float NRGKowSpeed = 0.65f;
 
 public:
 	Bhop();

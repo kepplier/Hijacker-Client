@@ -1,59 +1,202 @@
+
 #include "InventoryCleaner.h"
 
-#include "../ModuleManager.h"
+class ArmorStruct {
+public:
+	ArmorStruct(ItemStack* item, ArmorItem* yot, int slot) {
+		armor = yot;
+		m_slot = slot;
+		m_item = item;
+	}
+	bool isEqual(ArmorStruct& src) {
+		if (this->m_item->getArmorValueWithEnchants() == src.m_item->getArmorValueWithEnchants())
+			return true;
+		else
+			return false;
+	}
 
-InventoryCleaner::InventoryCleaner() : IModule(0, Category::PLAYER, "Automatically throws not needed stuff out of your inventory.") {
-	registerBoolSetting("Tools", &keepTools, keepTools);
-	registerBoolSetting("Armor", &keepArmor, keepArmor);
-	registerBoolSetting("Food", &keepFood, keepFood);
-	registerBoolSetting("Blocks", &keepBlocks, keepBlocks);
-	registerBoolSetting("OpenInv", &openInv, openInv);
-	registerBoolSetting("AutoSort", &autoSort, autoSort);
+	bool operator()(ArmorStruct lhs, ArmorStruct rhs) {
+		return (lhs.m_item->getArmorValueWithEnchants() > rhs.m_item->getArmorValueWithEnchants());
+	}
+	ArmorItem* armor = nullptr;
+	ItemStack* m_item = nullptr;
+	int m_slot = 0;
+};
+
+using namespace std;
+InventoryCleaner::InventoryCleaner() : IModule(0, Category::PLAYER, "Manages your inventory") {
+	mode.addEntry(EnumEntry("Creative", 3))
+		.addEntry(EnumEntry("Normal", 0))
+		.addEntry(EnumEntry("Inventory", 1));
+	// registerBoolSetting("AutoDisable", &autoDisable, autoDisable);
+	registerBoolSetting("Clean", &clean, clean);
+	registerBoolSetting("Sort", &autoSort, autoSort);
+	registerIntSetting("Delay", &delay, delay, 0, 30);
 }
-
-InventoryCleaner::~InventoryCleaner() {
-}
-
 const char* InventoryCleaner::getModuleName() {
-	return ("InvCleaner");
+	return ("InvManager");
+}
+
+void InventoryCleaner::onLevelRender() {
+	// if we ever need
 }
 
 void InventoryCleaner::onTick(GameMode* gm) {
-	if (Game.getLocalPlayer()->canOpenContainerScreen() && openInv) 
-		return;
+	auto player = Game.getLocalPlayer();
+	if (player == nullptr) return;
 
-	// Drop useless items
-	std::vector<int> dropSlots = findUselessItems();
-	if (!dropSlots.empty()) {
-		for (int i : dropSlots) {
-			Game.getLocalPlayer()->getSupplies()->inventory->dropSlot(i);
+	InventoryTransactionManager* manager = Game.getLocalPlayer()->getTransactionManager();
+	PlayerInventoryProxy* supplies = Game.getLocalPlayer()->getSupplies();
+	Inventory* inv = supplies->inventory;
+
+	static ItemStack* emptyItemStack = nullptr;
+	InventoryAction* first = nullptr;
+	InventoryAction* second = nullptr;
+
+	if (autoArmor) {
+		if (emptyItemStack == 0x0) {
+			uintptr_t sigOffset = FindSignature("48 8D 3D ? ? ? ? 80 B8 ? ? ? ? ? 75 19 48 8B 88 ? ? ? ? 48 8B 11 4C 8B 42 28 8B 50 10");
+			int offset = *reinterpret_cast<int*>(sigOffset + 3);
+			emptyItemStack = reinterpret_cast<ItemStack*>(sigOffset + offset + /*length of instruction*/ 7);
+		}
+
+		vector<ArmorStruct> armorList;
+
+		struct CompareArmorStruct {
+			bool operator()(ArmorStruct lhs, ArmorStruct rhs) {
+				return (lhs.m_item->getArmorValueWithEnchants() > rhs.m_item->getArmorValueWithEnchants());
+			}
+		};
+
+		for (int i = 0; i < 4; i++) {
+			for (int n = 0; n < 36; n++) {
+				ItemStack* stack = inv->getItemStack(n);
+				if (stack->item != NULL && (*stack->item)->isArmor() && reinterpret_cast<ArmorItem*>(*stack->item)->getArmorSlot() == i) {
+					armorList.push_back(ArmorStruct(stack, reinterpret_cast<ArmorItem*>(*stack->item), n));
+				}
+			}
+
+			if (player->getArmor(i)->item != nullptr)
+				armorList.push_back(ArmorStruct(player->getArmor(i), reinterpret_cast<ArmorItem*>(*player->getArmor(i)->item), i));
+
+			if (armorList.size() > 0) {
+				sort(armorList.begin(), armorList.end(), CompareArmorStruct());
+				ItemStack* armorItem = player->getArmor(i);
+
+				if (armorItem->item != nullptr && (ArmorStruct(armorItem, reinterpret_cast<ArmorItem*>(*armorItem->item), 0).isEqual(armorList[0])) == false) {
+					int slot = inv->getFirstEmptySlot();
+
+					first = new InventoryAction(i, armorItem, nullptr, 632);
+					second = new InventoryAction(slot, nullptr, armorItem);
+
+					*Game.getLocalPlayer()->getArmor(i) = *emptyItemStack;
+					*inv->getItemStack(slot) = *armorItem;
+
+					manager->addInventoryAction(*first);
+					manager->addInventoryAction(*second);
+
+					delete first;
+					delete second;
+					inv->removeItem(slot, slot);
+
+					first = new InventoryAction(armorList[0].m_slot, armorList[0].m_item, nullptr);
+					second = new InventoryAction(i, nullptr, armorList[0].m_item, 632);
+
+					*Game.getLocalPlayer()->getArmor(i) = *inv->getItemStack(armorList[0].m_slot);
+					*inv->getItemStack(armorList[0].m_slot) = *emptyItemStack;
+
+					manager->addInventoryAction(*first);
+					manager->addInventoryAction(*second);
+
+					delete first;
+					delete second;
+					inv->removeItem(armorList[0].m_slot, armorList[0].m_slot);
+				}
+				if (armorItem->item == nullptr) {
+					*Game.getLocalPlayer()->getArmor(i) = *inv->getItemStack(armorList[0].m_slot);
+
+					first = new InventoryAction(armorList[0].m_slot, armorList[0].m_item, nullptr);
+					second = new InventoryAction(i, nullptr, armorList[0].m_item, 632);
+
+					*inv->getItemStack(armorList[0].m_slot) = *emptyItemStack;
+
+					manager->addInventoryAction(*first);
+					manager->addInventoryAction(*second);
+
+					delete first;
+					delete second;
+					inv->removeItem(armorList[0].m_slot, armorList[0].m_slot);
+				}
+			}
+			armorList.clear();
+		}
+		armorList.clear();
+	}
+
+	// Drop items
+	if (clean) {
+		dropSlots = findUselessItems();
+		Odelay++;
+		if (Odelay > delay) {
+			if (!dropSlots.empty()) {
+				for (int i : dropSlots) {
+					player->getSupplies()->inventory->dropSlot(i);
+					dropSlots.push_back(i);
+				}
+			}
 		}
 	}
 
 	if (autoSort) {
-		// Put sword in first slot
-		{
-			PlayerInventoryProxy* supplies = Game.getLocalPlayer()->getSupplies();
-			Inventory* inv = supplies->inventory;
-			float damage = 0;
-			int item = 0;
-			for (int n = 0; n < 36; n++) {
-				ItemStack* stack = inv->getItemStack(n);
-				if (stack->item != NULL) {
-					float currentDamage = stack->getAttackingDamageWithEnchants();
-					if (currentDamage > damage) {
-						damage = currentDamage;
-						item = n;
-					}
+		float SwordDamage = 0;
+		float PickaxeDamage = 0;
+		float AxeDamage = 0;
+		int BlockCount = 0;
+
+		int Sword = swordSlot - 1;
+		int Pickaxe = pickSlot - 1;
+		int Axe = axeSlot - 1;
+		int Block = blockSlot - 1;
+
+		for (int n = 0; n < 36; n++) {
+			ItemStack* stack = inv->getItemStack(n);
+			if (stack->item != nullptr) {
+				float currentDamage = stack->getAttackingDamageWithEnchants();
+				float blockCount = stack->count;
+				if (stack->getItem()->isSword() && currentDamage > SwordDamage) {
+					SwordDamage = currentDamage;
+					Sword = n;
+				}
+				if (stack->getItem()->isPickaxe() && currentDamage > PickaxeDamage) {
+					PickaxeDamage = currentDamage;
+					Pickaxe = n;
+				}
+				if (stack->getItem()->isAxe() && currentDamage > AxeDamage) {
+					AxeDamage = currentDamage;
+					Axe = n;
+				}
+				if (stack->getItem()->isBlock() && blockCount > BlockCount) {
+					BlockCount = blockCount;
+					Block = n;
 				}
 			}
-			if (item != 0) inv->moveItem(item, 0);
 		}
+
+		if (Sword != swordSlot - 1) inv->swapSlots(Sword, swordSlot - 1);
+		if (Pickaxe != pickSlot - 1) inv->swapSlots(Pickaxe, pickSlot - 1);
+		if (Axe != axeSlot - 1) inv->swapSlots(Axe, axeSlot - 1);
+		if (Block != blockSlot - 1) inv->swapSlots(Block, blockSlot - 1);
+	}
+
+	if (autoDisable && Game.getLocalPlayer() == nullptr) {
+		// auto notification = g_Data.addNotification("InvManager:", "Disabled");
+		// notification->duration = 3;
+		setEnabled(false);
 	}
 }
 
-std::vector<int> InventoryCleaner::findStackableItems() {
-	std::vector<int> stackableSlot;
+vector<int> InventoryCleaner::findStackableItems() {
+	vector<int> stackableSlot;
 
 	for (int i = 0; i < 36; i++) {
 		ItemStack* itemStack = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i);
@@ -64,8 +207,8 @@ std::vector<int> InventoryCleaner::findStackableItems() {
 					ItemStack* itemStack2 = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i2);
 					if ((*itemStack2->item)->getMaxStackSize(0) > itemStack->count) {
 						if (*itemStack->item == *itemStack2->item) {
-							if ((std::find(stackableSlot.begin(), stackableSlot.end(), i2) == stackableSlot.end())) stackableSlot.push_back(i2);
-							if ((std::find(stackableSlot.begin(), stackableSlot.end(), i) == stackableSlot.end())) stackableSlot.push_back(i);
+							if ((find(stackableSlot.begin(), stackableSlot.end(), i2) == stackableSlot.end())) stackableSlot.push_back(i2);
+							if ((find(stackableSlot.begin(), stackableSlot.end(), i) == stackableSlot.end())) stackableSlot.push_back(i);
 						}
 					}
 				}
@@ -76,26 +219,26 @@ std::vector<int> InventoryCleaner::findStackableItems() {
 	return stackableSlot;
 }
 
-std::vector<int> InventoryCleaner::findUselessItems() {
+vector<int> InventoryCleaner::findUselessItems() {
 	// Filter by options
 
-	std::vector<int> uselessItems;
-	std::vector<ItemStack*> items;
+	vector<int> uselessItems;
+	vector<ItemStack*> items;
 
 	{
 		for (int i = 0; i < 36; i++) {
 			ItemStack* itemStack = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i);
 			if (itemStack->item != nullptr) {
 				if (!stackIsUseful(itemStack)) {
-					if (std::find(items.begin(), items.end(), itemStack) == items.end())
+					if (find(items.begin(), items.end(), itemStack) == items.end())
 						uselessItems.push_back(i);
 					else
 						items.push_back(itemStack);
-				} else if (std::find(items.begin(), items.end(), itemStack) == items.end()) {
+				} else if (find(items.begin(), items.end(), itemStack) == items.end()) {
 					if ((*itemStack->item)->itemId == 261 && !isLastItem(*itemStack->item))
 						uselessItems.push_back(i);
 					else
-						items.push_back(itemStack);	
+						items.push_back(itemStack);
 				}
 			}
 		}
@@ -105,10 +248,11 @@ std::vector<int> InventoryCleaner::findUselessItems() {
 				items.push_back(Game.getLocalPlayer()->getArmor(i));
 		}
 	}
-	// Filter weapons
+
+	// Filter Swords
 	if (items.size() > 0) {
 		// Filter by attack damage
-		std::sort(items.begin(), items.end(), [](const ItemStack* lhs, const ItemStack* rhs) {
+		sort(items.begin(), items.end(), [](const ItemStack* lhs, const ItemStack* rhs) {
 			ItemStack* current = const_cast<ItemStack*>(lhs);
 			ItemStack* other = const_cast<ItemStack*>(rhs);
 			return current->getAttackingDamageWithEnchants() > other->getAttackingDamageWithEnchants();
@@ -117,32 +261,60 @@ std::vector<int> InventoryCleaner::findUselessItems() {
 		bool hadTheBestItem = false;
 		ItemStack* bestItem = items.at(0);
 
-		for (int i = 0; i < 36; i++) {
-			if (std::find(uselessItems.begin(), uselessItems.end(), i) != uselessItems.end())
+		for (int i = 0; i < 36; i++) {  // 36
+			if (find(uselessItems.begin(), uselessItems.end(), i) != uselessItems.end())
 				continue;
 			ItemStack* itemStack = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i);
-			if (itemStack->item != nullptr && itemStack->getAttackingDamageWithEnchants() > 1) {
-				if (itemStack->getAttackingDamageWithEnchants() < bestItem->getAttackingDamageWithEnchants()) {
+			if (itemStack->item != nullptr) {
+				if (!itemStack->getItem()->isPickaxe() && !itemStack->getItem()->isTool() && !itemStack->getItem()->isFood() && !itemStack->getItem()->isAxe() && !itemStack->getItem()->isBlock() && itemStack->getAttackingDamageWithEnchants() < bestItem->getAttackingDamageWithEnchants()) {
 					uselessItems.push_back(i);
-				} else {
-					// Damage same as bestItem
-					if (hadTheBestItem)
-						uselessItems.push_back(i);
-					else
-						hadTheBestItem = true;
 				}
 			}
 		}
 	}
+
+	// Filter tools
+	if (items.size() > 0) {
+		PlayerInventoryProxy* supplies = Game.getLocalPlayer()->getSupplies();
+		Inventory* inv = supplies->inventory;
+		float SwordDamage = 0;
+		float PickaxeDamage = 0;
+		float AxeDamage = 0;
+
+		for (int n = 0; n < 36; n++) {
+			if (find(uselessItems.begin(), uselessItems.end(), n) != uselessItems.end())
+				continue;
+			ItemStack* stack = inv->getItemStack(n);
+			if (stack->item != nullptr) {
+				float currentDamage = stack->getAttackingDamageWithEnchants();
+				// Sword
+				if (stack->getItem()->isSword() && currentDamage > SwordDamage)
+					SwordDamage = currentDamage;
+				else if (stack->getItem()->isSword())
+					uselessItems.push_back(n);
+				// Pickaxe
+				if (stack->getItem()->isPickaxe() && currentDamage > PickaxeDamage)
+					PickaxeDamage = currentDamage;
+				else if (stack->getItem()->isPickaxe())
+					uselessItems.push_back(n);
+				// Axe
+				if (stack->getItem()->isAxe() && currentDamage > AxeDamage)
+					AxeDamage = currentDamage;
+				else if (stack->getItem()->isAxe())
+					uselessItems.push_back(n);
+			}
+		}
+	}
+
 	// Filter armor
 	{
-		std::vector<ItemStack*> helmets;
-		std::vector<ItemStack*> chestplates;
-		std::vector<ItemStack*> leggings;
-		std::vector<ItemStack*> boots;
+		vector<ItemStack*> helmets;
+		vector<ItemStack*> chestplates;
+		vector<ItemStack*> leggings;
+		vector<ItemStack*> boots;
 
 		// Filter by armor value
-		std::sort(items.begin(), items.end(), [](const ItemStack* lhs, const ItemStack* rhs) {
+		sort(items.begin(), items.end(), [](const ItemStack* lhs, const ItemStack* rhs) {
 			ItemStack* current = const_cast<ItemStack*>(lhs);
 			ItemStack* other = const_cast<ItemStack*>(rhs);
 			return current->getArmorValueWithEnchants() > other->getArmorValueWithEnchants();
@@ -168,11 +340,10 @@ std::vector<int> InventoryCleaner::findUselessItems() {
 			ItemStack* itemsteck = Game.getLocalPlayer()->getArmor(i);
 			Item** item = itemsteck->item;
 			if (item != nullptr) {
-				
 				ArmorItem* armor = reinterpret_cast<ArmorItem*>(*item);
-				
+
 				float testArmorValue = 0;
-				switch (armor->ArmorSlot) {
+				switch (armor->getArmorSlot()) {
 				case 0:
 					if (helmets.size() > 0)
 						testArmorValue = helmets.at(0)->getArmorValueWithEnchants();
@@ -191,12 +362,12 @@ std::vector<int> InventoryCleaner::findUselessItems() {
 					break;
 				}
 				if (itemsteck->getArmorValueWithEnchants() >= testArmorValue)
-					hadBest[armor->ArmorSlot] = true;
+					hadBest[armor->getArmorSlot()] = true;
 			}
 		}
 
-		for (int i = 0; i < 36; i++) {
-			if (std::find(uselessItems.begin(), uselessItems.end(), i) != uselessItems.end())
+		for (int i = 0; i < 36; i++) {  // 36
+			if (find(uselessItems.begin(), uselessItems.end(), i) != uselessItems.end())
 				continue;  // item already useless
 			ItemStack* itemStack = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i);
 			if (itemStack->item != nullptr && (*itemStack->item)->isArmor()) {
@@ -231,16 +402,17 @@ std::vector<int> InventoryCleaner::findUselessItems() {
 
 bool InventoryCleaner::stackIsUseful(ItemStack* itemStack) {
 	if (itemStack->item == nullptr) return true;
-	if (keepArmor && (*itemStack->item)->isArmor()) return true;      // Armor
-	if (keepTools && (*itemStack->item)->isTool()) return true;       // Tools
-	if (keepFood && (*itemStack->item)->isFood()) return true;        // Food
-	if (keepBlocks && (*itemStack->item)->isBlock()) return true;     // Block
-	if (keepTools && (*itemStack->item)->itemId == 368) return true;  // Ender Pearl
+	if ((*itemStack->item)->isWeapon()) return true;   // Weapon
+	if ((*itemStack->item)->isPickaxe()) return true;  // dickaxe
+	if ((*itemStack->item)->isArmor()) return true;    // Armor
+	if ((*itemStack->item)->isTool()) return true;     // Tools
+	if ((*itemStack->item)->isFood()) return true;     // Food
+	if ((*itemStack->item)->isBlock()) return true;    // Block
 	return false;
 }
 
 bool InventoryCleaner::isLastItem(Item* item) {
-	std::vector<Item*> items;
+	vector<Item*> items;
 	for (int i = 0; i < 36; i++) {
 		ItemStack* stack = Game.getLocalPlayer()->getSupplies()->inventory->getItemStack(i);
 		if (stack->item != nullptr) items.push_back((*stack->item));

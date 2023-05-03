@@ -2,7 +2,6 @@
 #include "TimerMine.h"
 
 TimerMine::TimerMine() : IModule(0, Category::WORLD, "Mine Blocks Faster!") {
-
 }
 
 const char* TimerMine::getModuleName() {
@@ -14,12 +13,11 @@ void TimerMine::onEnable() {
 
 void TimerMine::onTick(GameMode* gm) {
 	auto player = Game.getLocalPlayer();
-	if (player == nullptr) return;
+	auto pointer = player->level;
+	if (!player) return;
 
-	if ((GameData::isLeftClickDown()) && GameData::canUseMoveKeys()) {
-		Game.getClientInstance()->minecraft->setTimerSpeed(31.f);
-	}
-	if ((!GameData::isLeftClickDown()) && GameData::canUseMoveKeys()) {
-		Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
+	if (GameData::canUseMoveKeys() && player->region->getBlock(pointer->block)->blockLegacy->blockId != 0) {
+		Game.getClientInstance()->minecraft->setTimerSpeed(GameData::isLeftClickDown() ? 31.f : 20.f);
 	}
 }
+// Thanks to Srxfiq and Packet for helping with this to make it better and someone else forgot name though LOL

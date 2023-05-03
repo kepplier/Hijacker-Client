@@ -12,7 +12,10 @@ private:
 	float speed4hive2 = 0.325f;
 	bool hive = false;
 	bool hive2 = false;
+	bool vibie = false;
+	float DontTouchThisValue = 0.1f;
 	float speedFriction = 0.325f;
+	float DontTouchThisValue2 = 0.1f;
 	float cashedStepHeignt = 0.5f;
 
 public:

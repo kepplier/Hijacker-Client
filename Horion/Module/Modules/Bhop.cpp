@@ -1,6 +1,7 @@
 #include "Bhop.h"
 
 #include "../../../Utils/HMath.h"
+#include "../../../Utils/MovementUtils.h"
 
 Bhop::Bhop() : IModule(0, Category::MOVEMENT, "Hop around like a bunny!") {
 	registerEnumSetting("HiveModes", &mode, 0);
@@ -11,6 +12,7 @@ Bhop::Bhop() : IModule(0, Category::MOVEMENT, "Hop around like a bunny!") {
 	registerFloatSetting("Float Speed Hive 2", &speed2, speed2, 0.1f, 1.5f);
 	registerFloatSetting("Float Speed Hive 3", &speed3, speed3, 0.1f, 0.90f);
 	registerBoolSetting("Hive", &hive, hive);
+	registerBoolSetting("Vibie", &vibie, vibie);
 }
 
 Bhop::~Bhop() {
@@ -72,12 +74,41 @@ void Bhop::onMove(MoveInputHandler* input) {
 				player->lerpMotion(moveVec);
 			}
 		}
-	} else {
-		if (player->onGround && pressed)
-			player->jumpFromGround();
-		moveVec.x = moveVec2d.x * speed;
-		moveVec.y = player->velocity.y;
-		moveVec.z = moveVec2d.y * speed;
-		if (pressed) player->lerpMotion(moveVec);
 	}
 }
+// Patched
+/* if (vibie) {
+	if (!pressed)
+		MovementUtils::StopXZ(false);
+
+	static bool useVelocity = false;
+	if (0.5000000059604645 >= 0.285) {
+		if (player->onGround && pressed) player->jumpFromGround();
+		useVelocity = false;
+	} else
+		useVelocity = true;
+
+	if (0.5000000059604645 <= 0.03 && !input->isJumping) {
+		player->velocity.y += 0.5000000059604645;
+		useVelocity = false;
+	}
+	if (player->onGround) {
+		DontTouchThisValue *= 0.7846240322113037;
+	}
+	if (pressed) {
+		player->setSprinting(true);
+		if (player->onGround) {
+			if (useVelocity && !input->isJumping) player->velocity.y = 0.40;
+		}
+			if (!player->onGround) {
+				DontTouchThisValue2 = RandomFloat(0.209079251289368, 0.4146795992851257);
+			}
+			if (!player->onGround) {
+				MovementUtils::setMotion(DontTouchThisValue2);
+			}
+		if (player->onGround) {
+			moveVec.y = player->velocity.y = 0.40f;
+			}
+		}
+	}
+}*/

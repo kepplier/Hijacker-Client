@@ -602,6 +602,7 @@
     <ClInclude Include="Utils\Json.hpp" />
     <ClInclude Include="Utils\keys.h" />
     <ClInclude Include="Utils\Logger.h" />
+    <ClInclude Include="Utils\MovementUtils.h" />
     <ClInclude Include="Utils\SkinUtil.h" />
     <ClInclude Include="Utils\Target.h" />
     <ClInclude Include="Utils\TextFormat.h" />

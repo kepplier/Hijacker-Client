@@ -29,7 +29,7 @@ void Tracer::onLevelRender() {
 		const Vec3 origin = Game.getClientInstance()->levelRenderer->getOrigin().add(moveVec); /*place the start of the line slightly forward so it won't get clipped*/
 		Game.forEachEntity([&](Entity* ent, bool valid) {
 			if (ent != Game.getLocalPlayer() && Target::isValidTarget(ent) && Game.canUseMoveKeys()) {
-				DrawUtils::setColor(0,0,190, 1);
+				DrawUtils::setColor(0, 0, 190, 1);
 				DrawUtils::drawLine3d(origin, *ent->getPos(), true);
 			}
 		});

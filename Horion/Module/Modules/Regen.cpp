@@ -9,7 +9,7 @@ Regen::Regen() : IModule(0, Category::WORLD, "Regenerates your health") {
 	mode.addEntry(EnumEntry("Vanilla", 0))
 		.addEntry(EnumEntry("Flareon", 1));
 	registerFloatSetting("Range", &range, range, 1, 7);
-	registerIntSetting("DestroyDelay", &delay, delay, 1, 13);
+	registerIntSetting("DestroyDelay", &delay, delay, 1, 20); //added a higher delay cause it kicks sometimes
 	registerBoolSetting("Rotation", &rotation, rotation);
 	registerBoolSetting("Swing", &swing, swing);
 	registerBoolSetting("Render", &render, render);

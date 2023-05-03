@@ -5,7 +5,7 @@ TimerMine::TimerMine() : IModule(0, Category::WORLD, "Mine Blocks Faster!") {
 }
 
 const char* TimerMine::getModuleName() {
-	return ("TimerMine");
+	return ("SpeedMine");
 }
 
 void TimerMine::onEnable() {

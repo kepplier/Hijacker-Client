@@ -30,4 +30,5 @@ Not all source files are protected by this license - Some third party libraries 
 
 ## Hijacker
 Soon To Be The Best Client!
+
 Discord - https://dsc.gg/hijacker

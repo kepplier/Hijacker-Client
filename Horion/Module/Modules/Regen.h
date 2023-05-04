@@ -11,7 +11,7 @@ private:
 	Vec3 tempblockPos;
 
 	float range = 4.5f;
-	int delay = 6;
+	int delay = 1000; // ignore this LOL
 	float animYawB;
 	float animPitchB;
 	bool smooth = false;
@@ -30,11 +30,11 @@ public:
 	bool destroy = false;
 	int blocksBroke = 0;
 	bool swing = false;
-	bool rotation = false;
+	bool rotation = true;
 	bool render = false;
 	bool isregen = false;
 	bool canattack = true;
-	bool showrotation = false;
+	bool showrotation = true;
 
 	SettingEnum mode = SettingEnum(this);
 

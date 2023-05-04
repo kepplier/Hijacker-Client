@@ -1,25 +1,21 @@
 ﻿#include "Regen.h"
+
 #include "../../../SDK/Attribute.h"
 
 bool haspickaxe = false;
 
 using namespace std;
-Regen::Regen() : IModule(0, Category::WORLD, "Regenerates your health") {
+Regen::Regen() : IModule(0, Category::WORLD, "Breaks Redstone Ores For Hive") {
 	registerEnumSetting("HiveModes", &mode, 4);
-	mode.addEntry(EnumEntry("Vanilla", 0))
-		.addEntry(EnumEntry("Flareon", 1));
+	mode.addEntry(EnumEntry("Flareon", 1));
 	registerFloatSetting("Range", &range, range, 1, 7);
-	registerIntSetting("DestroyDelay", &delay, delay, 1, 20); //added a higher delay cause it kicks sometimes
-	registerBoolSetting("Rotation", &rotation, rotation);
-	registerBoolSetting("Swing", &swing, swing);
+	registerIntSetting("DestroyDelay", &delay, delay, 1, 25);  // added a higher delay cause it kicks sometimes
 	registerBoolSetting("Render", &render, render);
-	registerBoolSetting("ShowRotation", &showrotation, showrotation);
 }
 
 const char* Regen::getModuleName() {
 	return ("Regen");
 }
-
 
 bool Regen::selectPickaxe() {
 	PlayerInventoryProxy* supplies = Game.getLocalPlayer()->getSupplies();
@@ -84,7 +80,7 @@ void Regen::onTick(GameMode* gm) {
 				isregen = true;
 			}
 
-			if (enabledticks > delay) {
+			if (enabledticks > delay + 1) {
 				isregen = true;
 			} else {
 				isregen = false;
@@ -227,7 +223,6 @@ void Regen::onSendPacket(Packet* packet) {
 			movePacket->pitch = regenRot.x;
 			movePacket->yawUnused = regenRot.y;
 			movePacket->yaw = regenRot.y;
-
 		}
 	}
 }

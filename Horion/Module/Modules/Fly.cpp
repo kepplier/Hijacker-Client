@@ -1,179 +1,119 @@
 #include "Fly.h"
 
 Fly::Fly() : IModule('F', Category::MOVEMENT, "Fly to the sky") {
-	mode.addEntry(EnumEntry("Creative", 0))
-	.addEntry(EnumEntry("CubeGlide", 1))
-	.addEntry(EnumEntry("AirStuck", 2))
-	.addEntry(EnumEntry("Jetpack", 3))
-	.addEntry(EnumEntry("Jetpack2", 4))
-	.addEntry(EnumEntry("Motion", 5));
+	mode.addEntry(EnumEntry("Creative", 1))
+		.addEntry(EnumEntry("Hive", 0));
 	registerEnumSetting("Mode", &mode, 0);
-	registerFloatSetting("Horizontal Speed", &this->horizontalSpeed, this->horizontalSpeed, 0.1f, 10.f);
-	registerFloatSetting("Vertical Speed", &this->verticalSpeed, this->verticalSpeed, 0.1f, 10.f);
+	registerBoolSetting("Airwalk", &Airwalk, Airwalk);
+	registerBoolSetting("ClipUp", &clip, clip);
+	registerFloatSetting("Clip", &clipHeight, clipHeight, 0.5f, 1.1f);  // above this usually will kick after u enable again
+	registerFloatSetting("Glide", &glideMod, glideMod, -0.50f, 0.f);
+	registerIntSetting("TPS", &timer, timer, 1, 75);
 }
 
 Fly::~Fly() {
 }
 
 const char *Fly::getModuleName() {
-	return ("Fly");
+	return ("Flight");
+}
+float epicHiveFlySpeedArrayThingy[15] = {
+	0.5930000,
+	0.575559,
+	0.553347,
+	0.530032,
+	0.507356,
+	0.470081,
+	0.440991,
+	0.410887,
+	0.372595,
+	0.345948,
+	0.310799,
+	0.287015,
+	0.244470,
+	0.283055,
+	0.240000};
+int flySpeedIndex = 0;
+
+int stopYThingy = 0;
+
+void Fly::onTick(GameMode *gm) {
+	Game.getClientInstance()->minecraft->setTimerSpeed(static_cast<float>(timer));
+	if (Game.getLocalPlayer() != nullptr) {
+		LocalPlayer *player = Game.getLocalPlayer();
+		glideModEffective = glideMod;
+		GameSettingsInput *input = Game.getClientInstance()->getGameSettingsInput();
+
+		if (Game.canUseMoveKeys()) {
+			if (GameData::isKeyDown(*input->spaceBarKey))
+				glideModEffective += 0.2f;
+			if (GameData::isKeyDown(*input->sneakKey))
+				glideModEffective -= 0.2f;
+		}
+		gm->player->velocity.y = glideModEffective;
+		if (Airwalk) {
+			player->velocity.y = 0;
+		}
+	}
 }
 
 void Fly::onEnable() {
-	switch (mode.selected) {
-	case 5:
-		Game.getLocalPlayer()->setPos((*Game.getLocalPlayer()->getPos()).add(Vec3(0, 1, 0)));
-		break;
+	LocalPlayer *player = Game.getLocalPlayer();
+	// this is for my hivefly anything above 1 will gameban or kick super quick
+	if (clip) {
+		Vec3 myPos = *player->getPos();
+		myPos.y += clipHeight;
+		player->setPos(myPos);
 	}
 }
-
-void Fly::onTick(GameMode *gm) {
-	++gameTick;
-
-	switch (mode.selected) {
-	case 0:
-		gm->player->canFly = true;
-		break;
-	case 1: {
-		float calcYaw = (gm->player->yaw + 90) * (PI / 180);
-
-		gameTick++;
-
-		Vec3 pos = *Game.getLocalPlayer()->getPos();
-		pos.y += 1.3f;
-		C_MovePlayerPacket a(Game.getLocalPlayer(), pos);
-		Game.getClientInstance()->loopbackPacketSender->sendToServer(&a);
-		pos.y -= 1.3f;
-		C_MovePlayerPacket a2(Game.getLocalPlayer(), pos);
-		Game.getClientInstance()->loopbackPacketSender->sendToServer(&a2);
-
-		Vec3 moveVec;
-		moveVec.x = cos(calcYaw) * horizontalSpeed;
-		moveVec.z = sin(calcYaw) * horizontalSpeed;
-
-		gm->player->lerpMotion(moveVec);
-
-		if (gameTick >= 5) {
-			gameTick = 0;
-			float yaw = gm->player->yaw * (PI / 180);
-			float length = 4.f;
-
-			float x = -sin(yaw) * length;
-			float z = cos(yaw) * length;
-
-			gm->player->setPos(pos.add(Vec3(x, 0.5f, z)));
-		}
-	} break;
-	case 2:
-		gm->player->velocity = Vec3(0, 0, 0);
-		break;
-
-	case 3: {
-		float calcYaw = (gm->player->yaw + 90) * (PI / 180);
-		float calcPitch = (gm->player->pitch) * -(PI / 180);
-
-		Vec3 moveVec;
-		moveVec.x = cos(calcYaw) * cos(calcPitch) * horizontalSpeed;
-		moveVec.y = sin(calcPitch) * horizontalSpeed;
-		moveVec.z = sin(calcYaw) * cos(calcPitch) * horizontalSpeed;
-
-		gm->player->lerpMotion(moveVec);
-	} break;
-
-	case 4: {
-		if (gameTick >= 5) {
-			float calcYaw = (gm->player->yaw + 90) * (PI / 180);
-			float calcPitch = (gm->player->pitch) * -(PI / 180);
-
-			Vec3 pos = *Game.getLocalPlayer()->getPos();
-			C_MovePlayerPacket a(Game.getLocalPlayer(), pos);
-			Game.getClientInstance()->loopbackPacketSender->sendToServer(&a);
-			pos.y += 0.35f;
-			a = C_MovePlayerPacket(Game.getLocalPlayer(), pos);
-			Game.getClientInstance()->loopbackPacketSender->sendToServer(&a);
-
-			gm->player->velocity.y = 0.465f;
-			Vec3 moveVec;
-			moveVec.x = cos(calcYaw) * cos(calcPitch) * horizontalSpeed;
-			moveVec.z = sin(calcYaw) * cos(calcPitch) * horizontalSpeed;
-
-			gm->player->velocity.x = moveVec.x;
-			gm->player->velocity.z = moveVec.z;
-
-			float teleportX = cos(calcYaw) * cos(calcPitch) * 0.00000005f;
-			float teleportZ = sin(calcYaw) * cos(calcPitch) * 0.00000005f;
-
-			pos = *gm->player->getPos();
-			Game.getLocalPlayer()->setPos(Vec3(pos.x + teleportX, pos.y - 0.15f, pos.z + teleportZ));
-
-			gm->player->velocity.y -= 0.15f;
-			gameTick = 0;
-		}
-	}
-	case 5:
-		gm->player->velocity = Vec3(0, 0, 0);
-	}
-}
-
 void Fly::onDisable() {
-	if (Game.getLocalPlayer() == nullptr)
-		return;
-
-	switch (mode.selected) {
-	case 0:
-		if (Game.getLocalPlayer()->gamemode != 1)
-			Game.getLocalPlayer()->canFly = false;
-		break;
-	case 1:
-		Game.getLocalPlayer()->velocity = Vec3(0, 0, 0);
+	kys = 0;
+	Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
+	counter = 0;
+	if (Game.getLocalPlayer() != nullptr) {
+		LocalPlayer *player = Game.getLocalPlayer();
+		player->velocity.x = 0.f;
+		player->velocity.y = 0.f;
+		player->velocity.z = 0.f;
 	}
 }
 
 void Fly::onMove(MoveInputHandler *input) {
-	LocalPlayer *localPlayer = Game.getLocalPlayer();
-	if (localPlayer == nullptr)
-		return;
+	if (mode.selected == 0) {
+		kys++;
+		LocalPlayer *player = Game.getLocalPlayer();
+		if (player == nullptr) return;
 
-	switch (mode.selected) {
-	case 5: {
-		Vec3 *localPlayerPos = localPlayer->getPos();
-
-		float yaw = localPlayer->yaw;
 		Vec2 moveVec2d = {input->forwardMovement, -input->sideMovement};
 		bool pressed = moveVec2d.magnitude() > 0.01f;
 
-		if (input->isJumping) {
-			localPlayer->velocity.y += verticalSpeed;
-			localPlayer->fallDistance = 0.f;
+		float calcYaw = (player->yaw + 90) * (PI / 180);
+		Vec3 moveVec;
+		float c = cos(calcYaw);
+		float s = sin(calcYaw);
+		moveVec2d = {moveVec2d.x * c - moveVec2d.y * s, moveVec2d.x * s + moveVec2d.y * c};
+		float moveSpeed = epicHiveFlySpeedArrayThingy[flySpeedIndex++ % 13];
+		moveVec.x = moveVec2d.x * moveSpeed;
+
+		if (stopYThingy >= 3) {
+			stopYThingy = 0;
+			moveVec.y = player->velocity.y = glideModEffective;
+		} else
+			moveVec.y = glideModEffective;
+		stopYThingy++;
+
+		moveVec.z = moveVec2d.y * moveSpeed;
+
+		if (kys >= 8 && !clip) {
+			if (pressed) player->lerpMotion(moveVec);
+			// Utils::patchBytes((BYTE*)ViewBobBoi, (BYTE*)"\xB8\x01\x00\x00\x00\x90\x90", 7);
+		} else if (clip) {
+			if (pressed) player->lerpMotion(moveVec);
+			// Utils::patchBytes((BYTE*)ViewBobBoi, (BYTE*)"\xB8\x01\x00\x00\x00\x90\x90", 7);
 		}
-		if (input->isSneakDown) {
-			localPlayer->velocity.y -= verticalSpeed;
-			localPlayer->fallDistance = 0.f;
+		if (!pressed) {
+			player->velocity.x = 0;
+			player->velocity.z = 0;
 		}
-		if (input->right) {
-			yaw += 90.f;
-			if (input->forward)
-				yaw -= 45.f;
-			else if (input->backward)
-				yaw += 45.f;
-		}
-		if (input->left) {
-			yaw -= 90.f;
-			if (input->forward)
-				yaw += 45.f;
-			else if (input->backward)
-				yaw -= 45.f;
-		}
-		if (input->backward && !input->left && !input->right)
-			yaw += 180.f;
-		if (pressed) {
-			float calcYaw = (yaw + 90.f) * (PI / 180.f);
-			Vec3 moveVec;
-			moveVec.x = cos(calcYaw) * horizontalSpeed;
-			moveVec.y = localPlayer->velocity.y;
-			moveVec.z = sin(calcYaw) * horizontalSpeed;
-			localPlayer->lerpMotion(moveVec);
-		}
-	} break;
 	}
 }

@@ -6,7 +6,7 @@ Fly::Fly() : IModule('F', Category::MOVEMENT, "Fly to the sky") {
 	registerEnumSetting("Mode", &mode, 0);
 	registerBoolSetting("Airwalk", &Airwalk, Airwalk);
 	registerBoolSetting("ClipUp", &clip, clip);
-	registerFloatSetting("Clip", &clipHeight, clipHeight, 0.5f, 1.1f);  // above this usually will kick after u enable again
+	registerFloatSetting("Clip", &clipHeight, clipHeight, 0.5f, 7.0f);  // above this usually will kick after u enable again
 	registerFloatSetting("Glide", &glideMod, glideMod, -0.80f, 0.f);
 	registerIntSetting("TPS", &timer, timer, 1, 75);
 }
@@ -18,21 +18,21 @@ const char *Fly::getModuleName() {
 	return ("Flight");
 }
 float epicHiveFlySpeedArrayThingy[15] = {
-	0.893000,
-	0.775559,
-	0.753347,
-	0.730032,
-	0.644470,
-	0.893000,
-	0.640991,
-	0.610887,
-	0.572595,
-	0.545948,
-	0.510799,
-	0.893000,
-	0.444470,
-	0.383055,
-	0.440000};
+	0.933000,
+	0.875559,
+	0.853347,
+	0.830032,
+	0.744470,
+	0.793000,
+	0.740991,
+	0.710887,
+	0.672595,
+	0.645948,
+	0.610799,
+	0.933000,
+	0.544470,
+	0.483055,
+	0.540000};
 int flySpeedIndex = 0;
 
 int stopYThingy = 0;
@@ -95,7 +95,7 @@ void Fly::onMove(MoveInputHandler *input) {
 		float moveSpeed = epicHiveFlySpeedArrayThingy[flySpeedIndex++ % 13];
 		moveVec.x = moveVec2d.x * moveSpeed;
 
-		if (stopYThingy >= 3) {
+		if (stopYThingy >= 2) {
 			stopYThingy = 0;
 			moveVec.y = player->velocity.y = glideModEffective;
 		} else

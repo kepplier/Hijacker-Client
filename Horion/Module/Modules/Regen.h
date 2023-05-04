@@ -11,7 +11,7 @@ private:
 	Vec3 tempblockPos;
 
 	float range = 4.5f;
-	int delay = 1000; // ignore this LOL
+	int delay = 1;
 	float animYawB;
 	float animPitchB;
 	bool smooth = false;
@@ -29,9 +29,9 @@ public:
 	bool hasDestroyed = false;
 	bool destroy = false;
 	int blocksBroke = 0;
-	bool swing = false;
+	bool swing = true;
 	bool rotation = true;
-	bool render = false;
+	bool render = true;
 	bool isregen = false;
 	bool canattack = true;
 	bool showrotation = true;

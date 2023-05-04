@@ -53,6 +53,8 @@ void Bhop::onMove(MoveInputHandler* input) {
 		if (pressed) player->lerpMotion(moveVec);
 	}
 	if (hive) {
+		if (!pressed)
+			MovementUtils::StopXZ(false);
 		player->stepHeight = 0.f;
 		static bool useVelocity = false;
 		if (0.4000000059604645 >= 0.385) {
@@ -75,6 +77,9 @@ void Bhop::onMove(MoveInputHandler* input) {
 			}
 		}
 	}
+	if (player->damageTime)
+		moveVec.x = cos(calcYaw) * speed;
+	moveVec.z = sin(calcYaw) * speed;
 	if (NRGKow) {
 		player->stepHeight = 0.f;
 		static bool useVelocity = false;
@@ -94,14 +99,17 @@ void Bhop::onMove(MoveInputHandler* input) {
 				moveVec.x = moveVec2d.x * NRGKowSpeed;
 				moveVec.y = player->velocity.y;
 				moveVec.z = moveVec2d.y * NRGKowSpeed;
-				player->lerpMotion(moveVec);
-			}
+				if (player->onGround) {
+					MovementUtils::setMotion(NRGKowSpeed);
+					player->lerpMotion(moveVec);
 
-			if ((GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
-				Game.getClientInstance()->minecraft->setTimerSpeed(31.f);
-			}
-			if ((!GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
-				Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
+					if ((GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
+						Game.getClientInstance()->minecraft->setTimerSpeed(21.f);
+					}
+					if ((!GameData::isKeyDown(VK_SPACE)) && GameData::canUseMoveKeys()) {
+						Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
+					}
+				}
 			}
 		}
 	}

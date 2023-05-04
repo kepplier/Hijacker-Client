@@ -7,7 +7,7 @@ Fly::Fly() : IModule('F', Category::MOVEMENT, "Fly to the sky") {
 	registerBoolSetting("Airwalk", &Airwalk, Airwalk);
 	registerBoolSetting("ClipUp", &clip, clip);
 	registerFloatSetting("Clip", &clipHeight, clipHeight, 0.5f, 1.1f);  // above this usually will kick after u enable again
-	registerFloatSetting("Glide", &glideMod, glideMod, -0.50f, 0.f);
+	registerFloatSetting("Glide", &glideMod, glideMod, -0.80f, 0.f);
 	registerIntSetting("TPS", &timer, timer, 1, 75);
 }
 
@@ -18,21 +18,21 @@ const char *Fly::getModuleName() {
 	return ("Flight");
 }
 float epicHiveFlySpeedArrayThingy[15] = {
-	0.5930000,
-	0.575559,
-	0.553347,
-	0.530032,
-	0.507356,
-	0.470081,
-	0.440991,
-	0.410887,
-	0.372595,
-	0.345948,
-	0.310799,
-	0.287015,
-	0.244470,
-	0.283055,
-	0.240000};
+	0.893000,
+	0.775559,
+	0.753347,
+	0.730032,
+	0.644470,
+	0.893000,
+	0.640991,
+	0.610887,
+	0.572595,
+	0.545948,
+	0.510799,
+	0.893000,
+	0.444470,
+	0.383055,
+	0.440000};
 int flySpeedIndex = 0;
 
 int stopYThingy = 0;
@@ -99,7 +99,8 @@ void Fly::onMove(MoveInputHandler *input) {
 			stopYThingy = 0;
 			moveVec.y = player->velocity.y = glideModEffective;
 		} else
-			moveVec.y = glideModEffective;
+			moveVec.y = 0;
+
 		stopYThingy++;
 
 		moveVec.z = moveVec2d.y * moveSpeed;
@@ -110,10 +111,6 @@ void Fly::onMove(MoveInputHandler *input) {
 		} else if (clip) {
 			if (pressed) player->lerpMotion(moveVec);
 			// Utils::patchBytes((BYTE*)ViewBobBoi, (BYTE*)"\xB8\x01\x00\x00\x00\x90\x90", 7);
-		}
-		if (!pressed) {
-			player->velocity.x = 0;
-			player->velocity.z = 0;
 		}
 	}
 }

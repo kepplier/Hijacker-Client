@@ -9,7 +9,7 @@ Regen::Regen() : IModule(0, Category::WORLD, "Breaks Redstone Ores For Hive") {
 	registerEnumSetting("HiveModes", &mode, 4);
 	mode.addEntry(EnumEntry("Flareon", 1));
 	registerFloatSetting("Range", &range, range, 1, 7);
-	registerIntSetting("DestroyDelay", &delay, delay, 1, 30);  // added a higher delay cause it kicks sometimes
+	registerIntSetting("DestroyDelay", &delay, delay, 1, 25);  // added a higher delay cause it kicks sometimes
 	registerBoolSetting("Render", &render, render);
 }
 

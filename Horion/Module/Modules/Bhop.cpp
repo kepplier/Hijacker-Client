@@ -13,6 +13,7 @@ Bhop::Bhop() : IModule(0, Category::MOVEMENT, "Hop around like a bunny!") {
 	registerFloatSetting("Float Speed Hive 3", &speed3, speed3, 0.1f, 0.90f);
 	registerBoolSetting("Hive", &hive, hive);
 	registerBoolSetting("NRG Kow", &NRGKow, NRGKow);
+	registerBoolSetting("Vibie", &vibie, vibie);
 }
 
 Bhop::~Bhop() {
@@ -113,7 +114,22 @@ void Bhop::onMove(MoveInputHandler* input) {
 			}
 		}
 	}
+
+	if (vibie) {
+		speedFriction *= 0.8400610828399658f;
+		if (pressed) {
+			if (pressed) {
+				player->setSprinting(true);
+				if (player->onGround) {
+					player->jumpFromGround();
+					speedFriction = RandomFloat(0.885087823867798f, 0.94729517102241516f);
+				} else
+					MovementUtils::setMotion(speedFriction);
+			}
+		}
+	}
 }
+
 // Patched
 /* if (vibie) {
 	if (!pressed)

@@ -24,7 +24,7 @@ void Tracer::onLevelRender() {
 		Vec3 moveVec;
 		moveVec.x = cos(calcYaw) * cos(calcPitch) * 0.5f;
 		moveVec.y = sin(calcPitch) * 0.5f;
-		moveVec.z = sin(calcYaw) * cos(calcPitch) * 0.5f;
+		moveVec.z = sin(calcYaw) * cos(calcPitch) * 0.4f;
 
 		const Vec3 origin = Game.getClientInstance()->levelRenderer->getOrigin().add(moveVec); /*place the start of the line slightly forward so it won't get clipped*/
 		Game.forEachEntity([&](Entity* ent, bool valid) {

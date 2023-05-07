@@ -44,5 +44,6 @@ public:
 			return;
 		else
 			player->stepHeight = cashedStepHeignt;
+		Game.getClientInstance()->minecraft->setTimerSpeed(20.f);
 	};
 };

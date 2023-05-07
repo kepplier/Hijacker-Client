@@ -7,7 +7,7 @@ Bhop::Bhop() : IModule(0, Category::MOVEMENT, "Hop around like a bunny!") {
 	registerEnumSetting("HiveModes", &mode, 0);
 	mode.addEntry(EnumEntry("Hive UnSafe", 1))
 		.addEntry(EnumEntry("Hive Safe", 2));
-	registerFloatSetting("Regular Speed", &speed, speed, 0.1f, 1.5f);
+	registerFloatSetting("Vibie Speed", &speed, speed, 0.1f, 0.26f);
 	registerFloatSetting("Float Speed Hive 1", &speed1, speed1, 0.1f, 1.5f);
 	registerFloatSetting("Float Speed Hive 2", &speed2, speed2, 0.1f, 1.5f);
 	registerFloatSetting("Float Speed Hive 3", &speed3, speed3, 0.1f, 0.90f);
@@ -116,16 +116,15 @@ void Bhop::onMove(MoveInputHandler* input) {
 	}
 
 	if (vibie) {
-		speedFriction *= 0.8400610828399658f;
-		if (pressed) {
-			if (pressed) {
-				player->setSprinting(true);
-				if (player->onGround) {
-					player->jumpFromGround();
-					speedFriction = RandomFloat(0.885087823867798f, 0.94729517102241516f);
-				} else
-					MovementUtils::setMotion(speedFriction);
-			}
+		player->stepHeight = 0.f;
+		static bool useVelocity = false;
+		if (0.40 >= 0.385) {
+			if (player->onGround && pressed) player->jumpFromGround();
+
+			if (player->onGround && useVelocity && pressed && !input->isJumping)
+				player->velocity.y = 0.40;
+			MovementUtils::setMotion(speed);
+			Game.getClientInstance()->minecraft->setTimerSpeed(29.f);
 		}
 	}
 }

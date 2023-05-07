@@ -18,21 +18,21 @@ const char *Fly::getModuleName() {
 	return ("Flight");
 }
 float epicHiveFlySpeedArrayThingy[15] = {
-	0.813000,
-	0.755559,
+	0.913000,
+	0.855559,
 	0.723347,
-	0.530032,
-	0.544470,
-	0.413000,
-	0.433000,
-	0.510887,
-	0.572595,
-	0.645948,
-	0.510799,
-	1.433000,
-	0.544470,
-	0.683055,
-	0.540000};
+	0.930032,
+	0.844470,
+	0.713000,
+	0.933000,
+	0.810887,
+	0.772595,
+	0.945948,
+	0.810799,
+	0.733000,
+	0.944470,
+	0.883055,
+	0.740000};
 int flySpeedIndex = 0;
 
 int stopYThingy = 0;
@@ -92,7 +92,7 @@ void Fly::onMove(MoveInputHandler *input) {
 		float c = cos(calcYaw);
 		float s = sin(calcYaw);
 		moveVec2d = {moveVec2d.x * c - moveVec2d.y * s, moveVec2d.x * s + moveVec2d.y * c};
-		float moveSpeed = epicHiveFlySpeedArrayThingy[flySpeedIndex++ % 13];
+		float moveSpeed = epicHiveFlySpeedArrayThingy[flySpeedIndex++ % 1];
 		moveVec.x = moveVec2d.x * moveSpeed;
 
 		if (stopYThingy >= 2) {

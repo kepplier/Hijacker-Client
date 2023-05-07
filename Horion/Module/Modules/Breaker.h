@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Module.h"
 #include "../ModuleManager.h"
+#include "Module.h"
 
 class Breaker : public IModule {
 private:
@@ -12,6 +12,8 @@ private:
 	bool treasures = true;
 	bool chests = false;
 	bool barrels = false;
+	int niggawillgla = 0;
+	bool swing = true;
 
 public:
 	Breaker();

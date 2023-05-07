@@ -38,7 +38,7 @@ void Breaker::onTick(GameMode* gm) {
 					Game.getLocalPlayer()->swingArm();
 					return;
 				}
-				
+
 				if (eat) {
 					bool idk = true;
 					gm->buildBlock(&blockPos, 0, idk);
@@ -48,14 +48,20 @@ void Breaker::onTick(GameMode* gm) {
 			}
 		}
 	}
-
+	int delay = 0;
 	if (treasures) {
+		static auto breaker = moduleMgr->getModule<Breaker>();
 		Game.forEachEntity([](Entity* ent, bool b) {
 			std::string name = ent->getNameTag()->getText();
 			int id = ent->getEntityTypeId();
+
 			if (name.find("Treasure") != std::string::npos && Game.getLocalPlayer()->getPos()->dist(*ent->getPos()) <= 5) {
-				Game.getLocalPlayer()->swingArm();
-				Game.getGameMode()->attack(ent);
+				breaker->niggawillgla++;
+				if (breaker->niggawillgla >= 20) {
+					if (breaker->swing) Game.getLocalPlayer()->swing();
+					Game.getGameMode()->attack(ent);
+					breaker->niggawillgla = 0;
+				}
 			}
 		});
 	}
